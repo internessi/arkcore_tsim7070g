@@ -17,10 +17,14 @@ const char* statusScanAranetRn = "";
 
 uint32_t unixTime = 1746345600;  // Platzhalter-Zeit bis erste Synchronisierung
 uint32_t syncMillis = 0;  // Zeitpunkt der letzten Synchronisierung (millis)
+uint32_t lastSendTime = 0;  // wird nach setup gesetzt
+uint8_t minutesLeft = 10;
+unsigned long lastMinuteTick = 0;
 
 #include <aranet_rn.h>
 #include <arkcore_tsim7070g.h>
 #include <epaper.h>
+#include <gsm_tsim7070g.h>
 
 void setup()
 {
@@ -41,12 +45,30 @@ void setup()
   ePaperInit();
   drawScreen();
   //ePaperShowAll();
-
-
+  sendSensorDataViaGSM(); // einmal senden
+  lastSendTime = millis(); // Startzeit merken
+  countdownDisplay(10);
 }
   
 
+
 void loop() {
-  delay(10000);
-  Serial.print(".");
+  unsigned long now = millis();
+
+  if (now - lastSendTime >= 600000UL || lastSendTime == 0) {
+    readSensor();
+    drawScreen();
+    sendSensorDataViaGSM();
+    lastSendTime = now;
+    minutesLeft = 10;
+    countdownDisplay(minutesLeft); // Startwert anzeigen
+    lastMinuteTick = now;
+  }
+
+  if (minutesLeft > 1 && now - lastMinuteTick >= 60000UL) {
+    minutesLeft--;
+    countdownDisplay(minutesLeft);
+    lastMinuteTick = now;
+  }
+
 }
