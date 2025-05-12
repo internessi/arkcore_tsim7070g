@@ -60,6 +60,7 @@ void sendSensorDataViaGSM() {
 
   if (!modem.gprsConnect("iot.1nce.net", "", "")) {
     SerialMon.println("GPRS Fehler");
+    showTextOnDisplay("EGPRS");
     return;
   }
   SerialMon.print("GPRS OK - ");
