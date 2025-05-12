@@ -276,3 +276,23 @@ void countdownDisplay(uint8_t minutesLeft)
     display.print(minStr);
   } while (display.nextPage());
 }
+
+void showTextOnDisplay(const char* text)
+{
+  display.setRotation(1);
+  display.setPartialWindow(0, 100, display.width(), 100);  // höherer Bereich ab y=90
+  display.setFont(&bahnschrift22pt7b);
+  display.setTextColor(GxEPD_BLACK);
+
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
+  int16_t x = (display.width() - tbw) / 2 - tbx;
+  int16_t y = 100 + (100 + tbh) / 2 - tby;
+
+  display.firstPage();
+  do {
+    display.fillRect(0, 100, display.width(), 100, GxEPD_WHITE);
+    display.setCursor(x, y);
+    display.print(text);
+  } while (display.nextPage());
+}
