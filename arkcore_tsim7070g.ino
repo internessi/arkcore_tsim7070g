@@ -28,6 +28,10 @@ unsigned long lastMinuteTick = 0;
 
 void setup()
 {
+  delay(100);
+  pinMode(15, OUTPUT);
+  digitalWrite(15, HIGH);
+
   Serial.begin(115200);
   SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
   delay(1000);
@@ -48,6 +52,8 @@ void setup()
   sendSensorDataViaGSM(); // einmal senden
   lastSendTime = millis(); // Startzeit merken
   countdownDisplay(10);
+
+  digitalWrite(15, LOW);
 }
   
 
