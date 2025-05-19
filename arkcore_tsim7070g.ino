@@ -52,7 +52,7 @@ void setup() {
   digitalWrite(15, HIGH);
 
   pinMode(35, INPUT);
-
+  delay(3000);
   Serial.begin(115200);
   SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
   delay(3000);

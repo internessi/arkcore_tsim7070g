@@ -64,6 +64,7 @@ const char* scanAranetRn() {
     NimBLEScan* pScan = NimBLEDevice::getScan();
 
     if (!pScan) {
+        Serial.println("scan_failed");
         return "scan_failed";
     }
 
@@ -79,8 +80,13 @@ const char* scanAranetRn() {
     }
 
     if (advDevice != nullptr) {
+        Serial.print("Gefunden: ");
+        Serial.print(advDevice->getName().c_str());
+        Serial.print(" @ ");
+        Serial.println(advDevice->getAddress().toString().c_str());
         return "ok";
     } else {
+        Serial.println("Kein Aranet-Sensor gefunden.");
         return "not_found";
     }
 }
@@ -103,6 +109,7 @@ const char* scanAranetRn() {
  */
 const char* readAranetRn() {
     if (advDevice == nullptr) {
+        Serial.print("no_adv");
         return "no_adv";
     }
 
@@ -112,6 +119,7 @@ const char* readAranetRn() {
 
     if (!pClient->connect(advDevice)) {
         NimBLEDevice::deleteClient(pClient);
+        Serial.print("connect_failed");
         return "connect_failed";
     }
 
@@ -119,6 +127,7 @@ const char* readAranetRn() {
     if (!pSvc) {
         pClient->disconnect();
         NimBLEDevice::deleteClient(pClient);
+        Serial.print("service_not_found");
         return "service_not_found";
     }
 
@@ -126,6 +135,7 @@ const char* readAranetRn() {
     if (!pChr || !pChr->canRead()) {
         pClient->disconnect();
         NimBLEDevice::deleteClient(pClient);
+        Serial.print("char_not_found");
         return "char_not_found";
     }
 
@@ -133,6 +143,7 @@ const char* readAranetRn() {
     if (value.length() < 15) {
         pClient->disconnect();
         NimBLEDevice::deleteClient(pClient);
+        Serial.print("read_invalid");
         return "read_invalid";
     }
 
@@ -150,5 +161,6 @@ const char* readAranetRn() {
 
     pClient->disconnect();
     NimBLEDevice::deleteClient(pClient);
+    Serial.print("ok");
     return "ok";
 }
