@@ -260,7 +260,7 @@ void countdownDisplay(uint8_t minutesLeft)
   snprintf(minStr, sizeof(minStr), "%u", minutesLeft);
 
   display.setRotation(1);
-  display.setPartialWindow(0, 50, display.width(), 100);  // zentraler Bereich
+  display.setPartialWindow(0, 80, display.width(), 100);  // zentraler Bereich
   display.setFont(&bahnschrift22pt7b);
   display.setTextColor(GxEPD_BLACK);
   
@@ -276,6 +276,34 @@ void countdownDisplay(uint8_t minutesLeft)
     display.print(minStr);
   } while (display.nextPage());
 }
+
+void batDisplay() {
+  char buf[12];
+
+  if (batteryVolts100 == 0) {
+    snprintf(buf, sizeof(buf), "USB");
+  } else {
+    snprintf(buf, sizeof(buf), "%u", batteryVolts100);
+  }
+
+  display.setRotation(1);
+  display.setPartialWindow(0, 40, display.width(), 16);
+  display.setFont(&FreeMonoBold9pt7b);
+  display.setTextColor(GxEPD_BLACK);
+
+  int16_t tbx, tby; uint16_t tbw, tbh;
+  display.getTextBounds(buf, 0, 0, &tbx, &tby, &tbw, &tbh);
+  int16_t x = (display.width() - tbw) / 2 - tbx;
+  int16_t y = 40 + (16 + tbh) / 2 - tby - 8;  // 8 Pixel höher
+
+  display.firstPage();
+  do {
+    display.fillRect(-15, 40, display.width() + 30, 16, GxEPD_WHITE);
+    display.setCursor(x, y);
+    display.print(buf);
+  } while (display.nextPage());
+}
+
 
 void showTextOnDisplay(const char* text)
 {

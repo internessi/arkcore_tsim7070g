@@ -51,8 +51,7 @@ void sendSensorDataViaGSM() {
   modem.sendAT("+CMNB=2");   // Auto mode
   modem.sendAT("+CGDCONT=1,\"IP\",\"iot.1nce.net\"");
   SerialMon.print("bereit OK - ");
-   showTextOnDisplay("SetOK");
-
+  showTextOnDisplay("SetOK");
   SerialMon.print("Netz ");
   while (!modem.waitForNetwork(10000)) SerialMon.print(".");
   SerialMon.print(" OK - ");
