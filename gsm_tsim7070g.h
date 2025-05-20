@@ -99,7 +99,7 @@ void sendSensorDataViaGSM() {
   client.stop();
   modem.sendAT("+CPOWD=1");
   SerialMon.print("GSM: Close - ");
-   showTextOnDisplay("CLOSE");
+  showTextOnDisplay("CLOSE");
 
   response.trim();
   uint32_t serverTime = response.toInt();
@@ -111,5 +111,29 @@ void sendSensorDataViaGSM() {
     SerialMon.printf("SYNC: Ung\xC3\xBCltige Zeit: '%s'\n", response.c_str());
   }
    showTextOnDisplay("      ");
+   //modem.poweroff();
+   delay(2000);  // warten auf Abschaltvorgang
+    // Sicherstellen, dass PWRKEY auf HIGH bleibt
 }
 
+void shutdownModemIfActive() {
+  pinMode(MODEM_STATUS, INPUT);
+
+  if (digitalRead(MODEM_STATUS) == HIGH) {
+    Serial.println("Modem ist aktiv – wird jetzt abgeschaltet...");
+
+    // Versuchen, sauber herunterzufahren
+    modem.poweroff();
+    delay(500); // Zeit geben
+
+    // PWRKEY auf HIGH halten
+    //digitalWrite(MODEM_PWRKEY, HIGH);
+
+    // Optional: PWRKEY entkoppeln
+    // pinMode(MODEM_PWRKEY, INPUT);
+
+    Serial.println("Modem wurde deaktiviert.");
+  } else {
+    Serial.println("Modem war bereits aus.");
+  }
+}

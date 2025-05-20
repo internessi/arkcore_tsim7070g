@@ -42,3 +42,54 @@ bool timeToReadSensor() {
     }
     return false;
 }
+
+// Batteriemessung: nur GPIO35 intern (Faktor 2.0)
+void measureBattery() {
+  int raw = analogRead(35);
+  float voltage = (raw / 4095.0) * 3.3 * 2.0;
+  batteryVolts100 = voltage * 100;  // z. B. 3.31 V → 331
+
+  if (batteryVolts100 == 0) {
+    batteryVolts100 = 500;
+  }
+
+  Serial.print("BAT intern (35): ");
+  Serial.print(batteryVolts100);
+  Serial.println(" (x100 V)");
+}
+
+void loadCountersFromNVS() {
+  Preferences prefs;
+  prefs.begin("config", true);
+  nvsSensorCounter = prefs.getUChar("sensorCount", 0);
+  nvsGsmCounter    = prefs.getUChar("gsmCount", 0);
+  prefs.end();
+}
+
+void saveCountersToNVS() {
+  Preferences prefs;
+  prefs.begin("config", false);
+  prefs.putUChar("sensorCount", nvsSensorCounter);
+  prefs.putUChar("gsmCount", nvsGsmCounter);
+  prefs.end();
+}
+
+void saveSensorDataToNVS() {
+  Preferences prefs;
+  prefs.begin("sensor", false);
+  prefs.putFloat("temp", temperature);
+  prefs.putFloat("press", pressure);
+  prefs.putFloat("hum", humidity);
+  prefs.putUShort("radon", radon);
+  prefs.end();
+}
+
+void loadSensorDataFromNVS() {
+  Preferences prefs;
+  prefs.begin("sensor", true);
+  temperature = prefs.getFloat("temp", 0.0);
+  pressure    = prefs.getFloat("press", 0.0);
+  humidity    = prefs.getFloat("hum", 0.0);
+  radon       = prefs.getUShort("radon", 0);
+  prefs.end();
+}

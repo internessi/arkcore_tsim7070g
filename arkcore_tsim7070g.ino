@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <Preferences.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 // BLE-Variablen
 static const NimBLEAdvertisedDevice* advDevice;
@@ -16,6 +19,12 @@ uint16_t radon;
 const char* statusScanAranetRn = "";
 
 uint16_t batteryVolts100 = 0; // interne Teilung, in 0.01 V (z. B. 331 = 3.31 V)
+const uint64_t sleepMinute  = 60ULL * 1000000ULL;
+
+bool isSleepWakeup = false;
+byte nvsSensorCounter = 0;
+byte nvsGsmCounter = 0;
+
 
 uint32_t unixTime = 1746345600;  // Platzhalter-Zeit bis erste Synchronisierung
 uint32_t syncMillis = 0;  // Zeitpunkt der letzten Synchronisierung (millis)
@@ -28,74 +37,118 @@ unsigned long lastMinuteTick = 0;
 #include <epaper.h>
 #include <gsm_tsim7070g.h>
 
-// Batteriemessung: nur GPIO35 intern (Faktor 2.0)
-void measureBattery() {
-  int raw = analogRead(35);
-  float voltage = (raw / 4095.0) * 3.3 * 2.0;
-  batteryVolts100 = voltage * 100;  // z. B. 3.31 V → 331
+void switchResetReason() {
+  esp_reset_reason_t reason = esp_reset_reason();
 
-  if (batteryVolts100 == 0) {
-    batteryVolts100 = 500;
+  switch (reason) {
+    case ESP_RST_POWERON:
+      // Serial.println("Reset-Grund: Power-On oder Flash-Vorgang");
+      break;
+
+    case ESP_RST_DEEPSLEEP:
+      isSleepWakeup = true;
+      loadCountersFromNVS();
+      nvsSensorCounter++;
+      nvsGsmCounter++; 
+      // Serial.println("Reset-Grund: Aufwachen aus Deep Sleep");
+      break;
+
+    case ESP_RST_SW:
+    case ESP_RST_WDT:
+    case ESP_RST_PANIC:
+    case ESP_RST_BROWNOUT:
+      // Serial.println("Reset-Grund: Watchdog, Software-Reset, Panic oder Brownout");
+      break;
+
+    default:
+      // Serial.println("Reset-Grund: Unbekannt oder sonstiger Grund");
+      break;
   }
-
-  Serial.print("BAT intern (35): ");
-  Serial.print(batteryVolts100);
-  Serial.println(" (x100 V)");
-
-  // Test: Spannung auch in pressure speichern
-  pressure = batteryVolts100;
 }
 
 void setup() {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // Brownout-Detector deaktivieren
   delay(100);
-  pinMode(15, OUTPUT);
-  digitalWrite(15, HIGH);
+  pinMode(0, INPUT);
+  pinMode(2, INPUT);
+  pinMode(12, INPUT); // blaue LED
+  pinMode(13, INPUT);
+  pinMode(15, INPUT);
+  pinMode(35, INPUT); // Spannungsteiler
+  pinMode(MODEM_STATUS, INPUT); //  nur lesen
+  pinMode(MODEM_PWRKEY, INPUT);
+  //pinMode(MODEM_PWRKEY, OUTPUT); // Modem PWRKEY
+  //digitalWrite(MODEM_PWRKEY, HIGH);  // PWRKEY = HIGH = AUS !
+  //pinMode(MODEM_PWRKEY, OUTPUT);
+  //digitalWrite(MODEM_PWRKEY, LOW);
 
-  pinMode(35, INPUT);
-  delay(3000);
+
+
+  switchResetReason();
+  if (!isSleepWakeup) { 
+    delay(6000); // nur für test
+    shutdownModemIfActive();
+    delay(1000); // nur für test
+  }
+
   Serial.begin(115200);
-  SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
-  delay(3000);
+  delay(100);
 
-  Serial.println("\n- - - - - - - - - - -");
+  Serial.println("");
+  if (isSleepWakeup) {  
+    Serial.println("Reset-Grund: Aufwachen aus Deep Sleep");
+  } else {
+    Serial.println("Reset-Grund: Anderer Grund");
+  }
+  
   SN = generateSerialFromChipId();
   Serial.println("Seriennummer: " + SN);
 
-  scanSensor();
-  delay(1000);
-  readSensor();
-  delay(1000);
-  measureBattery();
+  if (!isSleepWakeup || (nvsSensorCounter == 5)) {
+    scanSensor();
+    delay(1000);
+    readSensor();
+    if (humidity == 0 && advDevice != nullptr) {
+      Serial.println("Humidity = 0 → retry...");
+      delay(2000);
+      readSensor();
+    }
+    NimBLEDevice::deinit(true);
+    saveSensorDataToNVS();
+    nvsSensorCounter = 0;
+  }
 
   ePaperInit();
+  loadSensorDataFromNVS();
   drawScreen();
+
+  measureBattery();
   batDisplay();
-  sendSensorDataViaGSM();
 
-  lastSendTime = millis();
-  countdownDisplay(10);
-
-  digitalWrite(15, LOW);
-}
-
-void loop() {
-  unsigned long now = millis();
-
-  if (now - lastSendTime >= 600000UL || lastSendTime == 0) {
-    readSensor();
-    measureBattery();
-    drawScreen();
-    batDisplay();
+  if (!isSleepWakeup || (nvsGsmCounter == 10)) {
+    loadSensorDataFromNVS();
+    pressure = batteryVolts100; // temporär batterie senden
     sendSensorDataViaGSM();
-    lastSendTime = now;
-    minutesLeft = 10;
-    countdownDisplay(minutesLeft);
-    lastMinuteTick = now;
+    nvsGsmCounter = 0;
   }
 
-  if (minutesLeft > 1 && now - lastMinuteTick >= 60000UL) {
-    minutesLeft--;
-    countdownDisplay(minutesLeft);
-    lastMinuteTick = now;
-  }
+  countdownDisplay(nvsSensorCounter);
+  SPI.end();
+
+  Serial.println("Deep Sleep...");
+  saveCountersToNVS();
+
+  //digitalWrite(MODEM_PWRKEY, HIGH); // PWRKEY = HIGH = aus
+  
+  //pinMode(MODEM_PWRKEY, INPUT);        // entkoppeln
+  //pinMode(MODEM_PWRKEY, OUTPUT);   // bewusst definieren
+  //digitalWrite(MODEM_PWRKEY, HIGH); // halten
+  delay(100);                      // stabilisieren
+
+  esp_sleep_enable_timer_wakeup(1 * sleepMinute);
+  esp_deep_sleep_start();
+
+  //lastSendTime = millis(); remember the variable you will need it
 }
+
+void loop() {}

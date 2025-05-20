@@ -3,8 +3,10 @@
  * alles für das display
  */
 
-
+#undef GxEPD2_ENABLE_DIAGNOSTIC
+#define GxEPD2_ENABLE_DIAGNOSTIC 0
 #define ENABLE_GxEPD2_GFX 0
+
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
@@ -169,6 +171,8 @@ void showPartialUpdate()
 
 void ePaperInit()
 {
+  SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
+  delay(100);                // kurze Stabilisierung für das ePaper
   display.init(115200, true, 50, false);
   Serial.println("Display init done");
 }
