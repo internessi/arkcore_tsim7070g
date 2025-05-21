@@ -12,10 +12,10 @@ static uint32_t lastReadTime = 0;
 static const uint32_t readInterval = 10 * 60 * 1000;
 
 String SN;
-float temperature;
-float pressure;
-float humidity;
-uint16_t radon;
+float temperature = 20;
+float pressure = 900;
+float humidity = 40;
+uint16_t radon = 10;
 const char* statusScanAranetRn = "";
 
 uint16_t batteryVolts100 = 0; // interne Teilung, in 0.01 V (z. B. 331 = 3.31 V)
@@ -43,6 +43,7 @@ void switchResetReason() {
   switch (reason) {
     case ESP_RST_POWERON:
       // Serial.println("Reset-Grund: Power-On oder Flash-Vorgang");
+      saveSensorDataToNVS();
       break;
 
     case ESP_RST_DEEPSLEEP:
@@ -83,16 +84,15 @@ void setup() {
   //digitalWrite(MODEM_PWRKEY, LOW);
 
 
+  Serial.begin(115200);
+  delay(100);
 
   switchResetReason();
   if (!isSleepWakeup) { 
-    delay(6000); // nur für test
-    shutdownModemIfActive();
+    delay(7000); // nur für test
+    modem.poweroff();
     delay(1000); // nur für test
   }
-
-  Serial.begin(115200);
-  delay(100);
 
   Serial.println("");
   if (isSleepWakeup) {  
@@ -104,16 +104,14 @@ void setup() {
   SN = generateSerialFromChipId();
   Serial.println("Seriennummer: " + SN);
 
-  if (!isSleepWakeup || (nvsSensorCounter == 5)) {
+  if (!isSleepWakeup || (nvsSensorCounter == 9)) {
     scanSensor();
-    delay(1000);
+    delay(100);
     readSensor();
-    if (humidity == 0 && advDevice != nullptr) {
-      Serial.println("Humidity = 0 → retry...");
-      delay(2000);
-      readSensor();
+    if (humidity == 0) {
+      loadSensorDataFromNVS();
     }
-    NimBLEDevice::deinit(true);
+    //NimBLEDevice::deinit(true);
     saveSensorDataToNVS();
     nvsSensorCounter = 0;
   }
@@ -125,9 +123,9 @@ void setup() {
   measureBattery();
   batDisplay();
 
-  if (!isSleepWakeup || (nvsGsmCounter == 10)) {
+  if (!isSleepWakeup || (nvsGsmCounter == 9)) {
     loadSensorDataFromNVS();
-    pressure = batteryVolts100; // temporär batterie senden
+    pressure = batteryVolts100 + 400; // temporär batterie senden
     sendSensorDataViaGSM();
     nvsGsmCounter = 0;
   }
@@ -144,8 +142,9 @@ void setup() {
   //pinMode(MODEM_PWRKEY, OUTPUT);   // bewusst definieren
   //digitalWrite(MODEM_PWRKEY, HIGH); // halten
   delay(100);                      // stabilisieren
-
-  esp_sleep_enable_timer_wakeup(1 * sleepMinute);
+  delay(59000); 
+  esp_sleep_enable_timer_wakeup(1000000ULL); // 1 Sekunde Deep Sleep
+  //esp_sleep_enable_timer_wakeup(1 * sleepMinute);
   esp_deep_sleep_start();
 
   //lastSendTime = millis(); remember the variable you will need it

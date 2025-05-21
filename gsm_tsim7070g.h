@@ -115,25 +115,3 @@ void sendSensorDataViaGSM() {
    delay(2000);  // warten auf Abschaltvorgang
     // Sicherstellen, dass PWRKEY auf HIGH bleibt
 }
-
-void shutdownModemIfActive() {
-  pinMode(MODEM_STATUS, INPUT);
-
-  if (digitalRead(MODEM_STATUS) == HIGH) {
-    Serial.println("Modem ist aktiv – wird jetzt abgeschaltet...");
-
-    // Versuchen, sauber herunterzufahren
-    modem.poweroff();
-    delay(500); // Zeit geben
-
-    // PWRKEY auf HIGH halten
-    //digitalWrite(MODEM_PWRKEY, HIGH);
-
-    // Optional: PWRKEY entkoppeln
-    // pinMode(MODEM_PWRKEY, INPUT);
-
-    Serial.println("Modem wurde deaktiviert.");
-  } else {
-    Serial.println("Modem war bereits aus.");
-  }
-}

@@ -91,6 +91,12 @@ const char* scanAranetRn() {
     }
 }
 
+void cleanupAfterClient(NimBLEClient* client) {
+    NimBLEDevice::deleteClient(client);
+    NimBLEDevice::getScan()->clearResults();
+    advDevice = nullptr;
+}
+
 /**
  * readAranetRn
  * 
@@ -116,17 +122,22 @@ const char* readAranetRn() {
     NimBLEClient* pClient = NimBLEDevice::createClient();
     pClient->setConnectionParams(12, 12, 0, 150);
     pClient->setConnectTimeout(5000);
-
+    //Serial.print("advDevice connectable: ");
+    //Serial.println(advDevice->isConnectable() ? "YES" : "NO");
+    //Serial.print("Connect attempt to: ");
+    //Serial.println(advDevice->getAddress().toString().c_str());
+    
     if (!pClient->connect(advDevice)) {
-        NimBLEDevice::deleteClient(pClient);
+        cleanupAfterClient(pClient);
         Serial.print("connect_failed");
+        delay(10000);
         return "connect_failed";
     }
 
     NimBLERemoteService* pSvc = pClient->getService("FCE0");
     if (!pSvc) {
         pClient->disconnect();
-        NimBLEDevice::deleteClient(pClient);
+        cleanupAfterClient(pClient);
         Serial.print("service_not_found");
         return "service_not_found";
     }
@@ -134,7 +145,7 @@ const char* readAranetRn() {
     NimBLERemoteCharacteristic* pChr = pSvc->getCharacteristic("f0cd3003-95da-4f4b-9ac8-aa55d312af0c");
     if (!pChr || !pChr->canRead()) {
         pClient->disconnect();
-        NimBLEDevice::deleteClient(pClient);
+        cleanupAfterClient(pClient);
         Serial.print("char_not_found");
         return "char_not_found";
     }
@@ -142,7 +153,7 @@ const char* readAranetRn() {
     std::string value = pChr->readValue();
     if (value.length() < 15) {
         pClient->disconnect();
-        NimBLEDevice::deleteClient(pClient);
+        cleanupAfterClient(pClient);
         Serial.print("read_invalid");
         return "read_invalid";
     }
@@ -160,7 +171,7 @@ const char* readAranetRn() {
     humidity    = humRaw / 10.0;
 
     pClient->disconnect();
-    NimBLEDevice::deleteClient(pClient);
+    cleanupAfterClient(pClient);
     Serial.print("ok");
     return "ok";
 }
