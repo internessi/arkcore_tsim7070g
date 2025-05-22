@@ -47,9 +47,9 @@ bool timeToReadSensor() {
 void measureBattery() {
   int raw = analogRead(35);
   float voltage = (raw / 4095.0) * 3.3 * 2.0;
-  batteryVolts100 = voltage * 100;  // z. B. 3.31 V → 331
+  batteryVolts100 = voltage * 100 + 20; // Kalibrierwert anpassen
 
-  if (batteryVolts100 == 0) {
+  if (batteryVolts100 == 20) {
     batteryVolts100 = 500;
   }
 

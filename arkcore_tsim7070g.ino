@@ -123,7 +123,8 @@ void setup() {
   measureBattery();
   batDisplay();
 
-  if (!isSleepWakeup || (nvsGsmCounter == 9)) {
+  // Senden nur, wenn BAT > 3.3V — und entweder kein Sleep-Wakeup oder Zähler auf 9
+  if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 9)) {
     loadSensorDataFromNVS();
     pressure = batteryVolts100 + 400; // temporär batterie senden
     sendSensorDataViaGSM();
@@ -142,9 +143,11 @@ void setup() {
   //pinMode(MODEM_PWRKEY, OUTPUT);   // bewusst definieren
   //digitalWrite(MODEM_PWRKEY, HIGH); // halten
   delay(100);                      // stabilisieren
-  delay(59000); 
-  esp_sleep_enable_timer_wakeup(1000000ULL); // 1 Sekunde Deep Sleep
-  //esp_sleep_enable_timer_wakeup(1 * sleepMinute);
+  
+  //delay(59000); // Alternativer sleep mit viel verbrauch
+  //esp_sleep_enable_timer_wakeup(1000000ULL); // 1 Sekunde Deep Sleep
+  
+  esp_sleep_enable_timer_wakeup(1 * sleepMinute);
   esp_deep_sleep_start();
 
   //lastSendTime = millis(); remember the variable you will need it
