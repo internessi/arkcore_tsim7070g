@@ -8,22 +8,33 @@ uint32_t getCurrentUnixTime() {
 }
 
 String generateSerialFromChipId() {
-  const char* baseChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 Zeichen, verwechslungsfrei
-  const int base = 32;
-  String result = "";
+  const char* baseChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 eindeutige Zeichen
+  const char* prefixChars = "ABCDEFGHJKLMNPQRSTUVWXYZ";       // 24 Buchstaben ohne I/O
 
-  uint32_t chipId = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);  // untere 4 Bytes
-  chipId += 0x5F3759DF; // optional: Streuung erhöhen
+  uint64_t mac = ESP.getEfuseMac();
 
-  while (chipId > 0) {
-    result = String(baseChars[chipId % base]) + result;
-    chipId /= base;
+  // FNV-1a Hash über 6 Byte MAC → 32 Bit Hash
+  uint32_t hash = 2166136261UL;
+  for (int i = 0; i < 6; i++) {
+    hash ^= (mac >> (8 * i)) & 0xFF;
+    hash *= 16777619UL;
   }
 
-  while (result.length() < 5) result = "A" + result;
+  // Erstes Zeichen (Buchstabe)
+  char prefix = prefixChars[hash % 24];
+  hash /= 24;
 
-  return "R" + result.substring(result.length() - 4); // z. B. R9X7D
+  // 4 Base32-Zeichen
+  String result = "";
+  for (int i = 0; i < 4; i++) {
+    result = baseChars[hash % 32] + result;
+    hash /= 32;
+  }
+
+  return String(prefix) + result;  // z. B. R9X7D
 }
+
+
 
 void scanSensor() {
     statusScanAranetRn = scanAranetRn();
@@ -93,3 +104,17 @@ void loadSensorDataFromNVS() {
   radon       = prefs.getUShort("radon", 0);
   prefs.end();
 }
+
+void blinkBlueLed3x() {
+  pinMode(12, OUTPUT);  // LED kontrollieren
+
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(12, LOW);   // LED AN (invertiert)
+    delay(200);
+    digitalWrite(12, HIGH);  // LED AUS
+    delay(200);
+  }
+
+  pinMode(12, INPUT);  // wieder in stromsparenden Zustand
+}
+

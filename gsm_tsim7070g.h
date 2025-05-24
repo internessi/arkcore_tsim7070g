@@ -36,6 +36,22 @@ void setupModem() {
   waitForModemReady();
 }
 
+void shutdownModem() {
+  // PWRKEY mindestens 1 Sekunde drücken zum Ausschalten
+  pinMode(MODEM_PWRKEY, OUTPUT);
+  digitalWrite(MODEM_PWRKEY, HIGH);
+  delay(1000);
+  digitalWrite(MODEM_PWRKEY, LOW);
+  delay(2000); // Wartezeit für sauberes Abschalten
+}
+
+void resetModem() {
+  shutdownModem();   // Erst ausschalten
+  delay(3000);       // Sicherheitspause nach dem Ausschalten
+  setupModem();      // Dann wie gehabt einschalten
+}
+
+
 void sendSensorDataViaGSM() {
   if (!serialBegun) {
     sim7070.begin(MODEM_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
@@ -45,8 +61,8 @@ void sendSensorDataViaGSM() {
 
   SerialMon.print("GSM: Start - ");
   showTextOnDisplay("Start");
-
   //modem.restart();
+  modem.sendAT("+CFUN=1");
   modem.sendAT("+CNMP=38");  // LTE only
   modem.sendAT("+CMNB=2");   // Auto mode
   modem.sendAT("+CGDCONT=1,\"IP\",\"iot.1nce.net\"");
@@ -74,7 +90,6 @@ void sendSensorDataViaGSM() {
   }
   SerialMon.print("OK - ");
    showTextOnDisplay("ConOK");
-
   uint32_t now = getCurrentUnixTime();
   String url = "/nt/srd.php?sn=" + SN +
                "&bqm3=" + String(radon) +

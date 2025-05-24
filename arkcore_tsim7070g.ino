@@ -67,6 +67,25 @@ void switchResetReason() {
   }
 }
 
+bool testAndShutdownModem() {
+  sim7070.begin(MODEM_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  delay(100);  // kurze Stabilisierung
+
+  bool ok = modem.testAT(1000);  // Antwort auf AT?
+
+  if (ok) {
+    SerialMon.println("Modem antwortet auf AT");
+    modem.sendAT("+CPOWD=1");    // reguläres Abschalten
+    delay(2000);                 // Zeit zum Herunterfahren
+  } else {
+    SerialMon.println("Keine Antwort vom Modem");
+  }
+
+  sim7070.end();                 // UART freigeben
+  serialBegun = false;          // Status zurücksetzen
+  return ok;
+}
+
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // Brownout-Detector deaktivieren
   delay(100);
@@ -88,10 +107,12 @@ void setup() {
   delay(100);
 
   switchResetReason();
-  if (!isSleepWakeup) { 
-    delay(7000); // nur für test
-    modem.poweroff();
-    delay(1000); // nur für test
+  if (!isSleepWakeup) {
+    delay(6000);
+    blinkBlueLed3x();
+    testAndShutdownModem();
+    blinkBlueLed3x();
+    delay(3000);
   }
 
   Serial.println("");
@@ -102,6 +123,7 @@ void setup() {
   }
   
   SN = generateSerialFromChipId();
+  //SN = "RGZ9R"; // nur für mein Testmodell !!!!
   Serial.println("Seriennummer: " + SN);
 
   if (!isSleepWakeup || (nvsSensorCounter == 9)) {
