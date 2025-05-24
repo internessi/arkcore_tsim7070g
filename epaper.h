@@ -24,7 +24,7 @@ const char HelloWeACtStudio[] = "WAWA";
 
 void helloWorld()
 {
-  display.setRotation(1);
+  display.setRotation(2);
   display.setFont(&FreeMonoBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
   int16_t tbx, tby; uint16_t tbw, tbh;
@@ -56,7 +56,7 @@ void helloFullScreenPartialMode()
   const char spm[] = "slow partial mode";
   const char npm[] = "no partial mode";
   display.setPartialWindow(0, 0, display.width(), display.height());
-  display.setRotation(1);
+  display.setRotation(2);
   display.setFont(&FreeMonoBold9pt7b);
   if (display.epd2.WIDTH < 104) display.setFont(0);
   display.setTextColor(GxEPD_BLACK);
@@ -196,7 +196,7 @@ void drawScreen()
   char tempStr[10];
   snprintf(tempStr, sizeof(tempStr), "%.1f", temperature);  // z. B. "22.7"
 
-  display.setRotation(1);
+  display.setRotation(2);
   display.setFullWindow();
   display.setTextColor(GxEPD_BLACK);
 
@@ -263,7 +263,7 @@ void countdownDisplay(uint8_t minutesLeft)
   char minStr[3];  // z. B. "10"
   snprintf(minStr, sizeof(minStr), "%u", minutesLeft);
 
-  display.setRotation(1);
+  display.setRotation(2);
   display.setPartialWindow(0, 80, display.width(), 100);  // zentraler Bereich
   display.setFont(&bahnschrift22pt7b);
   display.setTextColor(GxEPD_BLACK);
@@ -290,7 +290,7 @@ void batDisplay() {
     snprintf(buf, sizeof(buf), "%u", batteryVolts100);
   }
 
-  display.setRotation(1);
+  display.setRotation(2);
   display.setPartialWindow(0, 40, display.width(), 16);
   display.setFont(&FreeMonoBold9pt7b);
   display.setTextColor(GxEPD_BLACK);
@@ -311,7 +311,7 @@ void batDisplay() {
 
 void showTextOnDisplay(const char* text)
 {
-  display.setRotation(1);
+  display.setRotation(2);
   display.setPartialWindow(0, 100, display.width(), 100);  // höherer Bereich ab y=90
   display.setFont(&bahnschrift22pt7b);
   display.setTextColor(GxEPD_BLACK);

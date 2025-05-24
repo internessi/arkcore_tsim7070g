@@ -37,12 +37,8 @@ void setupModem() {
 }
 
 void shutdownModem() {
-  // PWRKEY mindestens 1 Sekunde drücken zum Ausschalten
-  pinMode(MODEM_PWRKEY, OUTPUT);
-  digitalWrite(MODEM_PWRKEY, HIGH);
-  delay(1000);
-  digitalWrite(MODEM_PWRKEY, LOW);
-  delay(2000); // Wartezeit für sauberes Abschalten
+  modem.sendAT("+CPOWD=1");  // sauberes Powerdown
+  delay(2000);  // Zeit für Abschaltung
 }
 
 void resetModem() {
@@ -69,13 +65,17 @@ void sendSensorDataViaGSM() {
   SerialMon.print("bereit OK - ");
   showTextOnDisplay("SetOK");
   SerialMon.print("Netz ");
-  while (!modem.waitForNetwork(10000)) SerialMon.print(".");
+  for (int i = 0; i < 7; i++) {
+    if (modem.waitForNetwork(10000)) break;
+    SerialMon.print(".");
+  }
   SerialMon.print(" OK - ");
   showTextOnDisplay("NETOK");
 
   if (!modem.gprsConnect("iot.1nce.net", "", "")) {
     SerialMon.println("GPRS Fehler");
     showTextOnDisplay("EGPRS");
+    shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("GPRS OK - ");
@@ -86,6 +86,7 @@ void sendSensorDataViaGSM() {
   if (!client.connect("con.radocon.de", 80)) {
     SerialMon.println("Fehler");
      showTextOnDisplay("EConn");
+     shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("OK - ");

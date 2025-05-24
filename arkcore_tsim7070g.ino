@@ -75,8 +75,7 @@ bool testAndShutdownModem() {
 
   if (ok) {
     SerialMon.println("Modem antwortet auf AT");
-    modem.sendAT("+CPOWD=1");    // reguläres Abschalten
-    delay(2000);                 // Zeit zum Herunterfahren
+    shutdownModem();
   } else {
     SerialMon.println("Keine Antwort vom Modem");
   }
