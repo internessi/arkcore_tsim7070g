@@ -56,41 +56,41 @@ void sendSensorDataViaGSM() {
   setupModem(); 
 
   SerialMon.print("GSM: Start - ");
-  showTextOnDisplay("Start");
+  //showTextOnDisplay("Start");
   //modem.restart();
   modem.sendAT("+CFUN=1");
   modem.sendAT("+CNMP=38");  // LTE only
   modem.sendAT("+CMNB=2");   // Auto mode
   modem.sendAT("+CGDCONT=1,\"IP\",\"iot.1nce.net\"");
   SerialMon.print("bereit OK - ");
-  showTextOnDisplay("SetOK");
+  //showTextOnDisplay("SetOK");
   SerialMon.print("Netz ");
   for (int i = 0; i < 7; i++) {
     if (modem.waitForNetwork(10000)) break;
     SerialMon.print(".");
   }
   SerialMon.print(" OK - ");
-  showTextOnDisplay("NETOK");
+  //showTextOnDisplay("NETOK");
 
   if (!modem.gprsConnect("iot.1nce.net", "", "")) {
     SerialMon.println("GPRS Fehler");
-    showTextOnDisplay("EGPRS");
+    //showTextOnDisplay("EGPRS");
     shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("GPRS OK - ");
-  showTextOnDisplay("GPRS!");
+  //showTextOnDisplay("GPRS!");
 
   TinyGsmClient client(modem);
   SerialMon.print("HTTP ");
   if (!client.connect("con.radocon.de", 80)) {
     SerialMon.println("Fehler");
-     showTextOnDisplay("EConn");
+     //showTextOnDisplay("EConn");
      shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("OK - ");
-   showTextOnDisplay("ConOK");
+   //showTextOnDisplay("ConOK");
   uint32_t now = getCurrentUnixTime();
   String url = "/nt/srd.php?sn=" + SN +
                "&bqm3=" + String(radon) +
@@ -110,12 +110,12 @@ void sendSensorDataViaGSM() {
       else if (capture) response += c;
     }
   }
-  showTextOnDisplay("SENT!");
+  //showTextOnDisplay("SENT!");
 
   client.stop();
   modem.sendAT("+CPOWD=1");
   SerialMon.print("GSM: Close - ");
-  showTextOnDisplay("CLOSE");
+  //showTextOnDisplay("CLOSE");
 
   response.trim();
   uint32_t serverTime = response.toInt();
@@ -126,8 +126,26 @@ void sendSensorDataViaGSM() {
   } else {
     SerialMon.printf("SYNC: Ung\xC3\xBCltige Zeit: '%s'\n", response.c_str());
   }
-   showTextOnDisplay("      ");
+   //showTextOnDisplay("      ");
    //modem.poweroff();
    delay(2000);  // warten auf Abschaltvorgang
     // Sicherstellen, dass PWRKEY auf HIGH bleibt
+}
+
+bool testAndShutdownModem() {
+  sim7070.begin(MODEM_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  delay(100);  // kurze Stabilisierung
+
+  bool ok = modem.testAT(1000);  // Antwort auf AT?
+
+  if (ok) {
+    SerialMon.println("Modem antwortet auf AT");
+    shutdownModem();
+  } else {
+    SerialMon.println("Keine Antwort vom Modem");
+  }
+
+  sim7070.end();                 // UART freigeben
+  serialBegun = false;          // Status zurücksetzen
+  return ok;
 }

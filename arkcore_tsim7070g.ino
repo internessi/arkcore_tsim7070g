@@ -67,24 +67,6 @@ void switchResetReason() {
   }
 }
 
-bool testAndShutdownModem() {
-  sim7070.begin(MODEM_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
-  delay(100);  // kurze Stabilisierung
-
-  bool ok = modem.testAT(1000);  // Antwort auf AT?
-
-  if (ok) {
-    SerialMon.println("Modem antwortet auf AT");
-    shutdownModem();
-  } else {
-    SerialMon.println("Keine Antwort vom Modem");
-  }
-
-  sim7070.end();                 // UART freigeben
-  serialBegun = false;          // Status zurücksetzen
-  return ok;
-}
-
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);  // Brownout-Detector deaktivieren
   delay(100);
@@ -105,14 +87,35 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+  SN = generateSerialFromChipId();
+  //SN = "RGZ9R"; // nur für mein Testmodell !!!!
+
+
+
   switchResetReason();
   if (!isSleepWakeup) {
-    delay(6000);
-    blinkBlueLed3x();
-    testAndShutdownModem();
-    blinkBlueLed3x();
     delay(3000);
+    blinkBlueLed3x();
+
+    ePaperInit();
+    loadSensorDataFromNVS();
+    drawScreen();
+    showTextInRegion("RESET", 0, 44); 
+    showTextInRegion("RADOCON", 39, 44);       
+    showTextInRegion("ALPHA", 78, 44);     
+    showTextInRegion("V0.5 SN:", 117, 44);     
+    showTextInRegion(SN.c_str(), 156, 44); 
+
+    delay(3000);
+    blinkBlueLed3x();
+
+    testAndShutdownModem();
+
+    blinkBlueLed3x();
+    delay(7000);
   }
+
+
 
   Serial.println("");
   if (isSleepWakeup) {  
@@ -121,9 +124,7 @@ void setup() {
     Serial.println("Reset-Grund: Anderer Grund");
   }
   
-  SN = generateSerialFromChipId();
-  //SN = "RGZ9R"; // nur für mein Testmodell !!!!
-  Serial.println("Seriennummer: " + SN);
+
 
   if (!isSleepWakeup || (nvsSensorCounter == 9)) {
     scanSensor();
@@ -140,19 +141,27 @@ void setup() {
   ePaperInit();
   loadSensorDataFromNVS();
   drawScreen();
-
+  char line1[20];
+  snprintf(line1, sizeof(line1), "%u Bq", radon);
+  showTextInRegion(line1, 34, 44);     
+  showTextInRegion(SN.c_str(), 156, 44); 
   measureBattery();
-  batDisplay();
+  char lineBattery[10];
+  snprintf(lineBattery, sizeof(lineBattery), "%.2fV", batteryVolts100 / 100.0);
+  showTextInRegion(lineBattery, 117, 44);
 
+  //batteryVolts100 = 320;
   // Senden nur, wenn BAT > 3.3V — und entweder kein Sleep-Wakeup oder Zähler auf 9
-  if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 9)) {
+  if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 59)) {
     loadSensorDataFromNVS();
     pressure = batteryVolts100 + 400; // temporär batterie senden
     sendSensorDataViaGSM();
     nvsGsmCounter = 0;
   }
+  char line2[20];
+  snprintf(line2, sizeof(line2), "B%u G%u", 9-nvsSensorCounter, 59-nvsGsmCounter);
+  showTextInRegion(line2, 78, 44);     
 
-  countdownDisplay(nvsSensorCounter);
   SPI.end();
 
   Serial.println("Deep Sleep...");
