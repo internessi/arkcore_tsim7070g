@@ -34,18 +34,6 @@ String generateSerialFromChipId() {
   return String(prefix) + result;  // z. B. R9X7D
 }
 
-
-
-void scanSensor() {
-    statusScanAranetRn = scanAranetRn();
-    Serial.printf("Scan: %s - %s\n", statusScanAranetRn, advDevice ? advDevice->getName().c_str() : "kein Gerät");
-}
-
-void readSensor() {
-    const char* statusRead = readAranetRn();
-    Serial.printf("Read: %s - %u Bq/m³ - %.1f °C - %.1f %%RH\n", statusRead, radon, temperature, humidity);
-}
-
 bool timeToReadSensor() {
     if (millis() - lastReadTime >= readInterval) {
         lastReadTime = millis();
@@ -86,6 +74,7 @@ void saveCountersToNVS() {
 }
 
 void saveSensorDataToNVS() {
+  Serial.println("SAVE: " + String(temperature) + " - " + String(pressure) + " - " + String(radon) + " - " + String(humidity));
   Preferences prefs;
   prefs.begin("sensor", false);
   prefs.putFloat("temp", temperature);
@@ -103,6 +92,7 @@ void loadSensorDataFromNVS() {
   humidity    = prefs.getFloat("hum", 0.0);
   radon       = prefs.getUShort("radon", 0);
   prefs.end();
+  Serial.println("LOAD: " + String(temperature) + " - " + String(pressure) + " - " + String(radon) + " - " + String(humidity));
 }
 
 void blinkBlueLed3x() {

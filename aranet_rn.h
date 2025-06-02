@@ -130,7 +130,8 @@ const char* readAranetRn() {
     if (!pClient->connect(advDevice)) {
         cleanupAfterClient(pClient);
         Serial.print("connect_failed");
-        delay(10000);
+        loadSensorDataFromNVS();
+        delay(1000);
         return "connect_failed";
     }
 
@@ -174,4 +175,14 @@ const char* readAranetRn() {
     cleanupAfterClient(pClient);
     Serial.print("ok");
     return "ok";
+}
+
+void scanSensor() {
+    statusScanAranetRn = scanAranetRn();
+    Serial.printf("Scan: %s - %s\n", statusScanAranetRn, advDevice ? advDevice->getName().c_str() : "kein Gerät");
+}
+
+void readSensor() {
+    const char* statusRead = readAranetRn();
+    Serial.printf("Read: %s - %u Bq/m³ - %.1f °C - %.1f %%RH\n", statusRead, radon, temperature, humidity);
 }

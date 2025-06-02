@@ -56,41 +56,45 @@ void sendSensorDataViaGSM() {
   setupModem(); 
 
   SerialMon.print("GSM: Start - ");
-  //showTextOnDisplay("Start");
+  snprintf(printLine, sizeof(printLine), "GSM:");
+  showTextInRegion(printLine, 78, 12);    
+
+  snprintf(printLine, sizeof(printLine), "senden...");
+  showTextInRegion(printLine, 102, 12);
   //modem.restart();
   modem.sendAT("+CFUN=1");
   modem.sendAT("+CNMP=38");  // LTE only
   modem.sendAT("+CMNB=2");   // Auto mode
   modem.sendAT("+CGDCONT=1,\"IP\",\"iot.1nce.net\"");
   SerialMon.print("bereit OK - ");
-  //showTextOnDisplay("SetOK");
+
   SerialMon.print("Netz ");
   for (int i = 0; i < 7; i++) {
     if (modem.waitForNetwork(10000)) break;
     SerialMon.print(".");
   }
   SerialMon.print(" OK - ");
-  //showTextOnDisplay("NETOK");
 
   if (!modem.gprsConnect("iot.1nce.net", "", "")) {
     SerialMon.println("GPRS Fehler");
-    //showTextOnDisplay("EGPRS");
+    snprintf(printLine, sizeof(printLine), "GPRS Fehler!");
+    showTextInRegion(printLine, 102, 12);
     shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("GPRS OK - ");
-  //showTextOnDisplay("GPRS!");
 
   TinyGsmClient client(modem);
   SerialMon.print("HTTP ");
   if (!client.connect("con.radocon.de", 80)) {
     SerialMon.println("Fehler");
-     //showTextOnDisplay("EConn");
-     shutdownModem(); // HINZUFÜGEN
+    snprintf(printLine, sizeof(printLine), "HTTP Fehler!");
+    showTextInRegion(printLine, 102, 12);
+    shutdownModem(); // HINZUFÜGEN
     return;
   }
   SerialMon.print("OK - ");
-   //showTextOnDisplay("ConOK");
+
   uint32_t now = getCurrentUnixTime();
   String url = "/nt/srd.php?sn=" + SN +
                "&bqm3=" + String(radon) +
@@ -110,12 +114,12 @@ void sendSensorDataViaGSM() {
       else if (capture) response += c;
     }
   }
-  //showTextOnDisplay("SENT!");
 
   client.stop();
   modem.sendAT("+CPOWD=1");
   SerialMon.print("GSM: Close - ");
-  //showTextOnDisplay("CLOSE");
+  snprintf(printLine, sizeof(printLine), "senden ok");
+  showTextInRegion(printLine, 102, 12);
 
   response.trim();
   uint32_t serverTime = response.toInt();

@@ -19,16 +19,14 @@
 // 1.54'' EPD Module
 GxEPD2_BW<GxEPD2_154_D67, GxEPD2_154_D67::HEIGHT> display(GxEPD2_154_D67(/*CS=*/21, /*DC=*/22, /*RES=*/5, /*BUSY=*/39)); // GDEH0154D67 200x200, SSD1681
 
-
 void ePaperInit()
 {
-  SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
-  delay(100);                // kurze Stabilisierung für das ePaper
+  SPI.begin(18, -1, 23, 21);
+  delay(100);
   display.init(115200, true, 50, false);
-  display.setRotation(2);  // Nur das!
+  display.setRotation(2);
   Serial.println("Display init done");
 }
-
 
 void drawScreen()
 {

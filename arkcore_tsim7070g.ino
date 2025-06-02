@@ -17,6 +17,7 @@ float pressure = 900;
 float humidity = 40;
 uint16_t radon = 10;
 const char* statusScanAranetRn = "";
+char printLine[20];
 
 uint16_t batteryVolts100 = 0; // interne Teilung, in 0.01 V (z. B. 331 = 3.31 V)
 const uint64_t sleepMinute  = 60ULL * 1000000ULL;
@@ -32,8 +33,9 @@ uint32_t lastSendTime = 0;  // wird nach setup gesetzt
 uint8_t minutesLeft = 10;
 unsigned long lastMinuteTick = 0;
 
-#include <aranet_rn.h>
+
 #include <arkcore_tsim7070g.h>
+#include <aranet_rn.h>
 #include <epaper.h>
 #include <gsm_tsim7070g.h>
 
@@ -106,7 +108,7 @@ void setup() {
     blinkBlueLed3x();
     testAndShutdownModem();
     blinkBlueLed3x();
-    delay(7000);
+    delay(5000);
   }
 
   Serial.println("");
@@ -129,21 +131,19 @@ void setup() {
     nvsSensorCounter = 0;
   }
 
-  char printLine[20];
 
-  // Display Init (immer)
+
+  loadSensorDataFromNVS();
   ePaperInit();
 
-    loadSensorDataFromNVS();
-    drawScreen();  // Komplettes Display mit Sensordaten
-
   // Display: FULL REFRESH nur bei BLE-Messung oder GSM-Senden
-  if (!isSleepWakeup || (nvsSensorCounter == 9) || (nvsGsmCounter == 59)) {
-
+  //if (!isSleepWakeup || (nvsSensorCounter == 9) || (nvsGsmCounter == 54)) {
+    
+    drawScreen();  // Komplettes Display mit Sensordaten
     snprintf(printLine, sizeof(printLine), "%u Bq", radon);
     showTextInRegion(printLine, 35, 22);     
     showTextInRegion(SN.c_str(), 151, 22);
-  }
+  //} 
   // else -> PARTIAL REFRESH (nur Countdown/Akku, kein drawScreen())
 
   // Batterie-Status (immer)
@@ -157,9 +157,9 @@ void setup() {
   }
   showTextInRegion(printLine, 126, 12);
 
-  // GSM Senden (nur bei guter Batterie und alle 59 Minuten)
+  // GSM Senden (nur bei guter Batterie und alle 54 Minuten)
   //batteryVolts100 = 320;
-  if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 59)) {
+  if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 54)) {
     loadSensorDataFromNVS();
     pressure = batteryVolts100 + 400; // temporär batterie senden
     sendSensorDataViaGSM();
@@ -169,7 +169,7 @@ void setup() {
   // Countdown (immer)
   snprintf(printLine, sizeof(printLine), "Messen in %2um", 9-nvsSensorCounter);
   showTextInRegion(printLine, 78, 12);    
-  snprintf(printLine, sizeof(printLine), "Senden in %2um", 59-nvsGsmCounter);
+  snprintf(printLine, sizeof(printLine), "Senden in %2um", 54-nvsGsmCounter);
   showTextInRegion(printLine, 102, 12);
 
   display.hibernate();  // Display in tiefsten Schlafmodus
@@ -185,7 +185,7 @@ void setup() {
   //digitalWrite(MODEM_PWRKEY, HIGH); // halten
   delay(100);                      // stabilisieren
   
-  //delay(59000); // Alternativer sleep mit viel verbrauch
+  //delay(54000); // Alternativer sleep mit viel verbrauch
   //esp_sleep_enable_timer_wakeup(1000000ULL); // 1 Sekunde Deep Sleep
   
   esp_sleep_enable_timer_wakeup(1 * sleepMinute);
