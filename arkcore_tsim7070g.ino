@@ -90,8 +90,6 @@ void setup() {
   SN = generateSerialFromChipId();
   //SN = "RGZ9R"; // nur für mein Testmodell !!!!
 
-
-
   switchResetReason();
   if (!isSleepWakeup) {
     delay(1000);
@@ -111,8 +109,6 @@ void setup() {
     delay(7000);
   }
 
-
-
   Serial.println("");
   if (isSleepWakeup) {  
     Serial.println("Reset-Grund: Aufwachen aus Deep Sleep");
@@ -120,8 +116,7 @@ void setup() {
     Serial.println("Reset-Grund: Anderer Grund");
   }
   
-
-
+  // BLE Sensor Reading (nur alle 9 Minuten)
   if (!isSleepWakeup || (nvsSensorCounter == 9)) {
     scanSensor();
     delay(100);
@@ -134,14 +129,24 @@ void setup() {
     nvsSensorCounter = 0;
   }
 
-  ePaperInit();
-  loadSensorDataFromNVS();
-  drawScreen();
   char printLine[20];
-  snprintf(printLine, sizeof(printLine), "%u Bq", radon);
-  showTextInRegion(printLine, 35, 22);     
-  showTextInRegion(SN.c_str(), 151, 22);
 
+  // Display Init (immer)
+  ePaperInit();
+
+    loadSensorDataFromNVS();
+    drawScreen();  // Komplettes Display mit Sensordaten
+
+  // Display: FULL REFRESH nur bei BLE-Messung oder GSM-Senden
+  if (!isSleepWakeup || (nvsSensorCounter == 9) || (nvsGsmCounter == 59)) {
+
+    snprintf(printLine, sizeof(printLine), "%u Bq", radon);
+    showTextInRegion(printLine, 35, 22);     
+    showTextInRegion(SN.c_str(), 151, 22);
+  }
+  // else -> PARTIAL REFRESH (nur Countdown/Akku, kein drawScreen())
+
+  // Batterie-Status (immer)
   measureBattery();
   if (batteryVolts100 == 500) {
     snprintf(printLine, sizeof(printLine), "Akku laden");
@@ -152,19 +157,20 @@ void setup() {
   }
   showTextInRegion(printLine, 126, 12);
 
+  // GSM Senden (nur bei guter Batterie und alle 59 Minuten)
   //batteryVolts100 = 320;
-  // Senden nur, wenn BAT > 3.3V — und entweder kein Sleep-Wakeup oder Zähler auf 9
   if (batteryVolts100 > 330 && (!isSleepWakeup || nvsGsmCounter == 59)) {
     loadSensorDataFromNVS();
     pressure = batteryVolts100 + 400; // temporär batterie senden
     sendSensorDataViaGSM();
     nvsGsmCounter = 0;
   }
+
+  // Countdown (immer)
   snprintf(printLine, sizeof(printLine), "Messen in %2um", 9-nvsSensorCounter);
   showTextInRegion(printLine, 78, 12);    
   snprintf(printLine, sizeof(printLine), "Senden in %2um", 59-nvsGsmCounter);
-  showTextInRegion(printLine, 102, 12); 
-
+  showTextInRegion(printLine, 102, 12);
 
   display.hibernate();  // Display in tiefsten Schlafmodus
   SPI.end();
