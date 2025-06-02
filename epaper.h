@@ -25,6 +25,7 @@ void ePaperInit()
   SPI.begin(18, -1, 23, 21); // SCK, MISO, MOSI, SS
   delay(100);                // kurze Stabilisierung für das ePaper
   display.init(115200, true, 50, false);
+  display.setRotation(2);  // Nur das!
   Serial.println("Display init done");
 }
 
@@ -33,8 +34,6 @@ void drawScreen()
 {
   char tempStr[10];
   snprintf(tempStr, sizeof(tempStr), "%.1f", temperature);  // z. B. "22.7"
-
-  display.setRotation(2);
   display.setFullWindow();
   display.setTextColor(GxEPD_BLACK);
 
@@ -97,14 +96,28 @@ void drawScreen()
 }
 
 
-void showTextInRegion(const char* text, int16_t clearY, int16_t clearH)
+void showTextInRegion(const char* text, int16_t clearY, uint8_t fontSize)
 {
-  display.setRotation(2);
+  // Berechne clearH aus fontSize (verdoppelt)
+  int16_t clearH = fontSize * 2;
+  
   display.setPartialWindow(0, clearY, display.width(), clearH);
-  display.setFont(&bahnschrift22pt7b);
+  
+  // Font-Auswahl basierend auf fontSize Parameter
+  if (fontSize == 9) {
+    display.setFont(&FreeMonoBold9pt7b);
+  } else if (fontSize == 12) {
+    display.setFont(&FreeSansBold12pt7b);
+  } else if (fontSize == 22) {
+    display.setFont(&bahnschrift22pt7b);
+  } else {
+    display.setFont(&bahnschrift22pt7b);  // Default für unbekannte Werte
+  }
+  
   display.setTextColor(GxEPD_BLACK);
 
-  int16_t tbx, tby; uint16_t tbw, tbh;
+  int16_t tbx, tby; 
+  uint16_t tbw, tbh;
   display.getTextBounds(text, 0, 0, &tbx, &tby, &tbw, &tbh);
   int16_t x = (display.width() - tbw) / 2 - tbx;
   int16_t y = clearY + (clearH - tbh) / 2 - tby;
