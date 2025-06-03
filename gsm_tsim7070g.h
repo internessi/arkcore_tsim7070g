@@ -74,6 +74,7 @@ void sendSensorDataViaGSM() {
     SerialMon.print(".");
   }
   SerialMon.print(" OK - ");
+  delay(3000); 
 
   if (!modem.gprsConnect("iot.1nce.net", "", "")) {
     SerialMon.println("GPRS Fehler");

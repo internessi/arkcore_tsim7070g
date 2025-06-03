@@ -104,11 +104,10 @@ void setup() {
     delay(1000);   
     showTextInRegion("ALPHA", 83, 12);     
     showTextInRegion("FW V0.6", 110, 12);     
-    delay(3000);
-    blinkBlueLed3x();
+    delay(2000);
     testAndShutdownModem();
     blinkBlueLed3x();
-    delay(5000);
+    delay(8000);
   }
 
   Serial.println("");
